@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b110e">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Suivi en direct de ton Raspberry Pi : performances, température, consommation, alertes.">
+<title>Pi Monitor</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="fonts/geist.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pi Monitor"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9b45a"/><stop offset="1" stop-color="#d9b45a"/></linearGradient>
+</defs></svg>
+<div class="sr" id="live" aria-live="polite"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="ptr" id="ptr" aria-hidden="true"></div>
+
+<nav class="side" aria-label="Navigation principale">
+  <i class="ind" id="ind"></i>
+  <div class="logo" id="logo" aria-hidden="true"></div>
+  <button class="nav on" data-v="home" aria-label="Accueil"><span id="n_home"></span><span>Accueil</span></button>
+  <button class="nav" data-v="temp" aria-label="Chaleur"><span id="n_temp"></span><span>Chaleur</span></button>
+  <button class="nav" data-v="perf" aria-label="Performances"><span id="n_perf"></span><span>Perfs</span></button>
+  <button class="nav" data-v="net" aria-label="Réseau"><span id="n_net"></span><span>Réseau</span></button>
+  <button class="nav" data-v="svc" aria-label="Services"><span id="n_svc"></span><span>Services</span></button>
+  <button class="nav" data-v="alerts" aria-label="Alertes"><span id="n_alerts"></span><span>Alertes</span><i class="badge" id="badge"></i></button>
+  <div class="sp"></div>
+  <button class="nav" id="themeBtn" title="Changer de thème (T)" aria-label="Changer de thème"><span id="n_theme"></span><span>Thème</span></button>
+</nav>
+
+<div class="main">
+  <header class="top">
+    <div><h1 id="title">Accueil</h1><div class="sub" id="subtitle"></div></div>
+    <span style="flex:1"></span>
+    <span class="chip" id="routeChip"><span class="dot" id="dot"></span><span id="route">connexion…</span></span>
+    <span class="chip hide-mini hide-phone" id="upChip"></span>
+    <button class="chip pbtn" id="pauseBtn" aria-pressed="false" title="Figer ou reprendre l’affichage"><span class="dot ok"></span>En direct</button>
+    <button class="ib" id="palBtn" title="Commandes (Ctrl+K)" aria-label="Ouvrir les commandes"></button>
+    <span class="seg" id="seg" role="group" aria-label="Période"><button data-r="1h" class="on">1&nbsp;h</button><button data-r="6h">6&nbsp;h</button><button data-r="24h">24&nbsp;h</button><button data-r="7d">7&nbsp;j</button></span>
+  </header>
+  <main class="scroll" id="main">
+
+  <!-- ACCUEIL -->
+  <section class="view on" id="v_home" aria-label="Accueil">
+    <div class="hero" id="hero"><div class="orb" id="orb"></div><div><h2 id="hh">Connexion au Pi…</h2><p id="hp">Recherche sur le réseau local puis Tailscale</p></div>
+      <div class="kv"><div><b id="k_cost">--</b><span>coût estimé / mois</span></div><div><b id="k_kwh">--</b><span>kWh sur la période</span></div><div><b id="k_up">--</b><span>en ligne</span></div></div></div>
+    <div id="alerts"></div>
+    <div class="home">
+      <section class="card bz board" aria-label="Carte du Raspberry Pi"><div class="inner">
+        <div id="board"></div>
+        <div class="parts" id="parts" role="group" aria-label="Composants"></div>
+        <div class="bd" id="bd" aria-live="off"></div>
+      </div></section>
+      <section class="card mes" aria-label="Mesures"><h3 id="h_ro"></h3><div class="ros" id="ros"></div></section>
+      <section class="card wide" aria-label="Courbe"><div class="tabrow"><h2 class="ctitle" id="ctitle"></h2><button class="btn" id="zoomReset" hidden>Réinitialiser le zoom</button></div><div class="chart" id="c_home" style="min-height:240px"></div><div class="tstat" id="tstat"></div><p class="note hint hide-phone">Choisis la mesure dans la liste. Glisse sur la courbe pour zoomer, double-clic pour revenir. Sur la température, glisse une ligne de seuil pour la régler.</p></section>
+      <div class="card"><h3 id="h_svc"></h3><div class="mini-svc" id="svcMini"></div></div>
+      <div class="card"><h3 id="h_disk"></h3><div id="disksMini"></div></div>
+    </div>
+  </section>
+
+  <!-- CHALEUR -->
+  <section class="view" id="v_temp" aria-label="Chaleur">
+    <div class="stats" id="tstats"></div>
+    <div class="card"><h3 id="h_t1"></h3><div class="chart" id="c_temp"></div></div>
+    <div class="grid g2 mt">
+      <div class="card"><h3 id="h_t2"></h3><div class="flags" id="flags"></div><p class="note">Ces drapeaux viennent directement du firmware du Pi. «&nbsp;Depuis le démarrage&nbsp;» reste allumé jusqu’au prochain redémarrage.</p></div>
+      <div class="card"><h3 id="h_t3"></h3><div id="tinfo"></div></div>
+    </div>
+  </section>
+
+  <!-- PERFS -->
+  <section class="view" id="v_perf" aria-label="Performances">
+    <div class="grid g2">
+      <div class="card"><h3 id="h_p1"></h3><div class="chart" id="c_cpu"></div></div>
+      <div class="card"><h3 id="h_p2"></h3><div class="chart" id="c_ram"></div></div>
+    </div>
+    <div class="card mt"><h3 id="h_p3"></h3><div class="cores" id="cores"></div></div>
+    <div class="grid g2 mt">
+      <div class="card"><h3 id="h_p4"></h3><div class="seg" id="procSeg" role="group" aria-label="Trier les processus" style="margin-bottom:8px"><button class="on" data-s="mem" aria-pressed="true">Mémoire</button><button data-s="cpu" aria-pressed="false">CPU</button></div><div id="procs"></div></div>
+      <div class="card"><h3 id="h_p5"></h3><div class="chart" id="c_pw"></div><p class="note">Estimation à partir de la charge CPU. Le Pi n’a pas de wattmètre.</p></div>
+    </div>
+  </section>
+
+  <!-- RESEAU -->
+  <section class="view" id="v_net" aria-label="Réseau">
+    <div class="grid g3" id="ifaces"></div>
+    <div class="card mt"><h3 id="h_n1"></h3><div class="legend"><span><i style="background:var(--acc)"></i>Réception</span><span><i style="background:var(--acc2)"></i>Émission</span></div><div class="chart" id="c_net"></div></div>
+    <div class="card mt"><h3 id="h_n2"></h3><div class="legend"><span><i style="background:var(--acc)"></i>Réception</span><span><i style="background:var(--acc2)"></i>Émission</span></div><div class="chart" id="c_netlive"></div></div>
+  </section>
+
+  <!-- SERVICES -->
+  <section class="view" id="v_svc" aria-label="Services">
+    <div class="seg" id="svcSeg" role="group" aria-label="Filtrer les services" style="margin-bottom:12px"><button class="on" data-s="all" aria-pressed="true">Tous</button><button data-s="down" aria-pressed="false">Arrêtés</button></div>
+    <div class="svcs" id="svcs"></div>
+    <div class="card mt"><h3 id="h_s1"></h3><div id="disks"></div></div>
+  </section>
+
+  <!-- ALERTES -->
+  <section class="view" id="v_alerts" aria-label="Alertes">
+    <div class="grid g2">
+      <div class="card log"><h3 id="h_a1"></h3><div id="log"></div><div style="margin-top:12px"><button class="btn" id="clearLog">Vider le journal</button></div></div>
+      <div class="card"><h3 id="h_a2"></h3>
+        <div class="set">
+          <label for="t_warn">Température : alerte (°C)</label><input id="t_warn" type="number" inputmode="decimal" name="t_warn" autocomplete="off">
+          <label for="t_bad">Température : critique (°C)</label><input id="t_bad" type="number" inputmode="decimal" name="t_bad" autocomplete="off">
+          <label for="t_ram">RAM (%)</label><input id="t_ram" type="number" inputmode="decimal" name="t_ram" autocomplete="off">
+          <label for="t_disk">Disque (%)</label><input id="t_disk" type="number" inputmode="decimal" name="t_disk" autocomplete="off">
+          <label for="t_cpu">CPU soutenu 1 min (%)</label><input id="t_cpu" type="number" inputmode="decimal" name="t_cpu" autocomplete="off">
+          <label for="t_price">Prix du kWh (EUR)</label><input id="t_price" type="number" step="0.01" inputmode="decimal" name="t_price" autocomplete="off">
+          <label id="l_notif">Notifications</label><button class="tg" id="t_notif" role="switch" aria-labelledby="l_notif"></button>
+          <label class="native" id="l_auto">Démarrer avec Windows</label><button class="tg native" id="t_auto" role="switch" aria-labelledby="l_auto"></button>
+          <label>Tester une notification</label><button class="btn" id="testNotif">Envoyer</button>
+        </div>
+        <div class="webonly" style="margin-top:14px"><button class="btn pri" id="install" hidden>Installer l’app sur cet appareil</button></div>
+        <p class="note hide-phone">Raccourcis : <kbd>Ctrl</kbd>+<kbd>K</kbd> commandes, <kbd>1</kbd> à <kbd>6</kbd> changent de page, <kbd>T</kbd> le thème, <kbd>R</kbd> actualise. <span class="native">Partout dans Windows : <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd> ouvre ou masque l’app, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd> les widgets.</span></p>
+      </div>
+    </div>
+    <div class="grid g2 mt">
+      <div class="card native"><h3 id="h_w"></h3>
+        <div class="svcs" id="wbtns" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+        <div class="set" style="margin-top:14px"><label id="l_top">Widgets au premier plan</label><button class="tg" id="t_top" role="switch" aria-labelledby="l_top"></button></div>
+        <p class="note">Glisse un widget pour le déplacer. Clic droit dessus pour l’opacité, changer de widget ou le fermer. Sa position est mémorisée.</p>
+      </div>
+      <div class="card"><h3 id="h_c"></h3>
+        <div class="set" style="grid-template-columns:110px 1fr">
+          <label for="c_lan">Réseau local</label><input id="c_lan" style="width:100%" name="lan" autocomplete="off" spellcheck="false" inputmode="url">
+          <label for="c_ts">Tailscale</label><input id="c_ts" style="width:100%" name="ts" autocomplete="off" spellcheck="false" inputmode="url">
+          <label for="c_tok">Jeton</label><input id="c_tok" type="password" style="width:100%" name="token" autocomplete="off" spellcheck="false">
+        </div>
+        <div style="margin-top:12px"><button class="btn" id="c_save">Enregistrer la connexion</button></div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<div class="pal" id="pal" role="dialog" aria-modal="true" aria-label="Commandes"><div><input id="palIn" placeholder="Aller à, thème, période…" autocomplete="off" spellcheck="false" aria-label="Rechercher une commande"><ul id="palList"></ul></div></div>
+<div class="pal" id="pair" role="dialog" aria-modal="true" aria-label="Connexion"><div class="card pair"><h2>Connecter cet appareil</h2><p>Colle le jeton du Pi (fichier token.txt) ou ouvre le lien d’appairage.</p><div class="set" style="display:block"><label class="sr" for="pairTok">Jeton</label><input id="pairTok" type="password" placeholder="Jeton…" autocomplete="off" spellcheck="false"></div><button class="btn pri" id="pairGo">Se connecter</button></div></div>
+
+<script src="core.js"></script>
+<script src="bridge.js"></script>
+<script src="common.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

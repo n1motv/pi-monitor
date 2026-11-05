@@ -1,0 +1,42 @@
+{
+  "name": "pi-monitor",
+  "productName": "Pi Monitor",
+  "version": "1.0.0",
+  "description": "Suivi en direct de mon Raspberry Pi : performances, temperature, consommation, alertes et widgets",
+  "main": "main.js",
+  "author": "",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "dev.n1motv.pimonitor",
+    "productName": "Pi Monitor",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "default-config.json",
+      "renderer/**",
+      "build/tray*.png"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": "nsis",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.2.2",
+    "electron-builder": "^26.18.0",
+    "rcedit": "^5.0.2"
+  }
+}

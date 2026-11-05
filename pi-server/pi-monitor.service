@@ -1,0 +1,12 @@
+[Unit]
+Description=Pi monitor (API metriques pour le widget PC)
+After=network-online.target mnt-ssd.mount
+
+[Service]
+User=pi
+ExecStart=/usr/bin/python3 /mnt/ssd/pi-monitor/pi_monitor.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

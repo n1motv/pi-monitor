@@ -1,0 +1,13 @@
+{
+  "token": "",
+  "routes": [
+    {
+      "name": "Réseau local",
+      "url": "http://raspberrypi.local:8095"
+    },
+    {
+      "name": "Tailscale",
+      "url": "https://<ton-pi>.<ton-tailnet>.ts.net"
+    }
+  ]
+}

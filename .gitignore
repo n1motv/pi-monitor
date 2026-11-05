@@ -1,0 +1,10 @@
+token.txt
+dist/
+node_modules/
+*.db
+.taste-skill/
+graphify-out/cache/
+app/
+*.bat
+graphify-out/
+test-electron.mjs

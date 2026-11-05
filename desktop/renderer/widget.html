@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Pi Widget</title>
+<link rel="stylesheet" href="style.css">
+<style>
+html,body{background:transparent!important;height:100%;overflow:hidden;display:block;padding:0}
+body{padding:8px}
+.w{position:relative;height:100%;border-radius:20px;border:1px solid var(--line2);-webkit-app-region:drag;user-select:none;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--card2) 94%,transparent),color-mix(in srgb,var(--card) 94%,transparent));
+  box-shadow:0 10px 30px rgba(0,0,0,.45);padding:12px 14px;display:flex;flex-direction:column;overflow:hidden}
+.x{position:absolute;top:8px;right:9px;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;color:var(--mut);opacity:0;transition:.15s;-webkit-app-region:no-drag}
+.w:hover .x{opacity:1}.x:hover{background:var(--line);color:var(--tx)}.x svg{width:13px;height:13px}
+.hd{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);margin-bottom:6px;padding-right:22px}
+.hd b{color:var(--tx);font-weight:600}.hd #st{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.k-temp #lat{display:none}
+.dot{flex:none}
+.grid4{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px 0;align-content:center}
+.rg{display:flex;flex-direction:column;align-items:center}
+.rg .gw{zoom:.8;margin:0}.rg .rl{color:var(--mut);font-size:11.5px;margin-top:-6px}
+.off{opacity:.45;filter:saturate(.3)}.gw .tr{stroke:var(--line2)}
+/* barre */
+.k-bar .w{flex-direction:row;align-items:center;gap:14px;padding:0 18px}
+.k-bar .orb{width:38px;height:38px;box-shadow:none}.k-bar .orb svg{width:20px;height:20px}
+.it{display:flex;align-items:center;gap:8px;flex:1}.it svg{width:18px;height:18px;color:var(--mut)}
+.it b{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;display:block;line-height:1.1}.it span{font-size:10.5px;color:var(--mut)}
+/* temperature */
+.k-temp .gw{zoom:1;margin:0 auto;height:150px}.k-temp .gv b{font-size:38px}
+.k-temp .meta{display:flex;justify-content:space-between;color:var(--mut);font-size:11.5px;margin-top:2px}.k-temp .meta b{color:var(--tx);font-weight:550}
+#wsp{height:50px;margin-top:6px;-webkit-app-region:no-drag}
+</style>
+</head>
+<body>
+<div class="w" id="w"><div class="x" id="x"></div></div>
+<script src="common.js"></script>
+<script>
+const kind=new URLSearchParams(location.search).get('kind')||'gauges';
+document.body.classList.add('k-'+kind);
+const W=$('w');
+const ring=(id,label,unit)=>`<div class="rg"><div class="gw"><svg viewBox="0 0 170 170"><circle class="tr" cx="85" cy="85" r="66" stroke-dasharray="${ARC} ${C}"/><circle class="vl" id="g_${id}" cx="85" cy="85" r="66" stroke="url(#gA)" stroke-dasharray="0 ${C}"/></svg><div class="gv"><b id="gn_${id}">--</b><span>${unit}</span></div></div><div class="rl">${label}</div></div>`;
+const hd=`<div class="hd"><span class="dot" id="dot"></span><span id="st"><b>Raspberry Pi</b></span><span style="flex:1"></span><span id="lat"></span></div>`;
+const body={
+ gauges:hd+`<div class="grid4" id="body">${ring('temp','Température','°C')}${ring('cpu','Processeur','%')}${ring('ram','Mémoire','%')}${ring('pw','Consommation','W')}</div>`,
+ temp:hd+`<div id="body">${ring('temp','','°C')}<div class="meta" id="tm"></div><div class="chart" id="wsp"></div></div>`,
+ bar:`<div class="orb" id="orb"></div>`+[['temp','temp','°C','Chaleur'],['cpu','cpu','%','CPU'],['ram','ram','%','RAM'],['pw','zap','W','Conso']].map(([id,i,u,l])=>`<div class="it">${ic(i)}<div><b id="v_${id}">--</b><span>${l}</span></div></div>`).join('')
+};
+W.insertAdjacentHTML('beforeend',body[kind]);
+$('x').innerHTML=ic('bad').replace(/<circle[^>]*>/,'').replace('<path d="M12 8v4M12 16h.01"/>','<path d="M6 6l12 12M18 6 6 18"/>');
+$('x').onclick=()=>pi.widget('close',kind);
+W.oncontextmenu=e=>{e.preventDefault();pi.menu(kind)};
+W.ondblclick=()=>pi.openMain();
+
+function apply(s){
+  const st=s.settings;setTheme(st.theme);Object.assign(th,st.th);range=st.range;
+  const n=s.now,ok=s.connected&&n;W.classList.toggle('off',!ok);
+  const al=s.alerts||[],lv=s.level;
+  if($('dot')){$('dot').className='dot '+(ok?'ok':'bad');
+    $('st').innerHTML=ok?(al.length?`<b style="color:var(--${lv==='bad'?'bad':'warn'})">${al.length} alerte${al.length>1?'s':''}</b> · ${al[0].m}`:'<b>Raspberry Pi</b> · tout est normal'):'<b>Pi injoignable</b>';
+    $('lat').textContent=ok?s.route.replace('Réseau local','LAN')+' '+s.lat+' ms':''}
+  if(!n)return;
+  const pw=n.power.watts_est;
+  if(kind==='bar'){const c=lv==='bad'?'bad':lv==='warn'?'warn':'ok';$('orb').style.setProperty('--hc',`var(--${ok?c:'bad'})`);$('orb').innerHTML=ic(ok?(c==='ok'?'ok':c==='warn'?'warn':'bad'):'bad');
+    $('v_temp').textContent=n.temp+' °C';$('v_temp').style.color=tcol(n.temp);$('v_cpu').textContent=Math.round(n.cpu.pct)+' %';$('v_ram').textContent=Math.round(n.mem.pct)+' %';$('v_pw').textContent=pw.toFixed(1)+' W';return}
+  num($('gn_temp'),n.temp,1);gauge('temp',n.temp-30,60,tcol(n.temp));
+  if(kind==='gauges'){num($('gn_cpu'),n.cpu.pct,0);gauge('cpu',n.cpu.pct,100,pcol(n.cpu.pct,th.t_cpu));
+    num($('gn_ram'),n.mem.pct,0);gauge('ram',n.mem.pct,100,pcol(n.mem.pct,th.t_ram));num($('gn_pw'),pw,2);gauge('pw',pw-3,4.5,'var(--pw)')}
+  if(kind==='temp'){const h=s.hist;$('tm').innerHTML=`<span>min <b>${h&&h.temp_min!=null?h.temp_min:'--'}°</b></span><span>moy <b>${h&&h.temp_avg!=null?h.temp_avg:'--'}°</b></span><span>max <b>${h&&h.temp_max!=null?h.temp_max:'--'}°</b></span>`;
+    if(h&&h!==apply.h){apply.h=h;const P=h.points;chart('wsp',{t:P.map(p=>p[0]),series:[{name:'Température',v:P.map(p=>p[3]),color:'var(--warn)'}],mini:true,fmt:v=>v.toFixed(1)+' °C'})}}
+}
+pi.onState(apply);pi.state().then(apply);
+</script>
+</body>
+</html>
