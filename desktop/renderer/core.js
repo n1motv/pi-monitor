@@ -37,12 +37,12 @@ class Core extends Emitter {
     if ('range' in patch) this.loadHist();
     if ('th' in patch || 'conn' in patch) { this.route = null; this.recompute(); }
   }
-  async get(route, p, ms = 2500) {
+  async get(route, p, ms = 10000) {
     return fetch(route.url + p, { headers: { Authorization: 'Bearer ' + this.conn().token }, signal: AbortSignal.timeout(ms) });
   }
   async pickRoute() {
     for (const r of this.conn().routes) {
-      try { if ((await this.get(r, '/api/health', 1500)).ok) return r; } catch {}
+      try { if ((await this.get(r, '/api/health', 5000)).ok) return r; } catch {}
     }
     return null;
   }
@@ -64,7 +64,9 @@ class Core extends Emitter {
       this.recompute();
       if (first) this.loadHist();
     } catch {
-      this.route = null; this.failures++;
+      this.failures++;
+      if (this.failures < 3 && this.st.now && this.st.status !== 'auth') return; // tolère 2 ratés de suite (Wi-Fi instable)
+      this.route = null;
       this.st.connected = false; if (this.st.status !== 'auth') this.st.status = 'down';
       this.recompute();
     }
